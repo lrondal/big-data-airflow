@@ -48,7 +48,7 @@
 
 ## 3. Spark transformations (≥3 - your code)
 
-File: `include/team_<shortname>_spark.py`
+File: `include/team_CR_spark.py`
 
 | # | Function | What it does |
 |---|----------|--------------|
