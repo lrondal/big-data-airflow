@@ -4,6 +4,7 @@ Copy to include/team_<yourname>_spark.py and implement three Spark transformatio
 Spec: read silver with schema → enrich → aggregate → write curated Parquet + dashboard JSON.
 The smoke-test Spark code is baked into the Docker image (not shipped in the student kit).
 """
+
 from __future__ import annotations
 
 from pyspark.sql import DataFrame, SparkSession

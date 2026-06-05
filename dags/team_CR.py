@@ -23,6 +23,7 @@ from airflow.exceptions import AirflowFailException
 
 from include.ingest import ingest_day, validate_silver
 from include.paths import report_json
+from include.team_CR_spark import run_daily
 
 # TODO: after creating team_<yourname>_spark.py, import run_daily from there:
 # from include.team_<yourname>_spark import run_daily
@@ -73,9 +74,20 @@ def team_CR_dag():
         except RuntimeError as e:
             raise AirflowFailException(str(e)) from e
 
+    @task(task_id="run_spark_kpis")
+    def run_spark_kpis(ds: str) -> str:
+        """
+        Execute run_daily that apply spark transformation
+        """
+
+        report_path = run_daily(ds)
+        return str(report_path)
+
     silver = ingest_to_silver(ds=ds)
     validation = validate(ds=ds)
-    wait_for_csv >> silver >> validation
+    report = run_spark_kpis(ds=ds)
+
+    wait_for_csv >> silver >> validation >> report
 
 
 team_CR_dag()
