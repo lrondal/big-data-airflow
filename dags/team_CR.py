@@ -12,6 +12,7 @@ Steps:
   3. Define 5 tasks
   4. Wire spark task to YOUR run_daily() in include/team_<yourname>_spark.py
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -34,7 +35,7 @@ DEFAULT_ARGS = {
 
 
 with DAG(
-    dag_id="team_CHANGE_ME",
+    dag_id="team_CR",
     description="Capstone retail KPI pipeline",
     start_date=datetime(2026, 6, 1),
     end_date=datetime(2026, 6, 14),
@@ -43,17 +44,19 @@ with DAG(
     default_args=DEFAULT_ARGS,
     tags=["lab4", "capstone"],
 ) as dag:
-
-    wait_csv = FileSensor(
-        ...
+    ds = "{{ ds }}"
+    wait_for_csv = FileSensor(
+        task_id="wait_for_csv",
+        filepath=f"incoming/transactions_{ds}.csv",
+        poke_interval=30,
+        timeout=timedelta(hours=1).total_seconds(),
+        mode="reschedule",
     )
 
-    @task
-    ...
+    # @task
+    # ...
 
-    @task
-    ...
-        
+    # @task
+    # ...
+
 ...
-
-
