@@ -63,6 +63,7 @@ def team_CR_dag():
         return str(silver_path)
 
     silver = ingest_to_silver(ds=ds)
+
     wait_for_csv >> silver
 
 
