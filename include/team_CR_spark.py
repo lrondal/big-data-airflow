@@ -47,8 +47,21 @@ def transform_1(spark: SparkSession, input_path: str) -> DataFrame:
 
 
 def transform_2(spark: SparkSession, df: DataFrame, logical_date: str) -> DataFrame:
-    """Transformation 2 - e.g. enrich, join reference data, derive columns."""
-    raise NotImplementedError("Implement transformation 2")
+    df_enriched = (
+        df.withColumn("transaction_hour", F.hour("ts"))
+        .withColumn("transaction_date", F.to_date("ts"))
+        .withColumn(
+            "amount_category",
+            F.when(F.col("amount_eur") < 50, "small")
+            .when(F.col("amount_eur") < 150, "medium")
+            .when(F.col("amount_eur") < 300, "large")
+            .otherwise("very_large"),
+        )
+        .withColumn(
+            "is_card_payment", F.when(F.col("payment_method") == "card", 1).otherwise(0)
+        )
+    )
+    return df_enriched
 
 
 def transform_3(df: DataFrame) -> DataFrame:
