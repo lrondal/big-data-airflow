@@ -17,8 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from airflow import DAG
-from airflow.decorators import task
+from airflow.decorators import dag, task
 from airflow.sensors.filesystem import FileSensor
 
 from include.ingest import ingest_day, validate_silver
@@ -34,7 +33,7 @@ DEFAULT_ARGS = {
 }
 
 
-with DAG(
+@dag(
     dag_id="team_CR",
     description="Capstone retail KPI pipeline",
     start_date=datetime(2026, 6, 1),
@@ -43,7 +42,8 @@ with DAG(
     catchup=False,
     default_args=DEFAULT_ARGS,
     tags=["lab4", "capstone"],
-) as dag:
+)
+def team_CR_dag():
     ds = "{{ ds }}"
     wait_for_csv = FileSensor(
         task_id="wait_for_csv",
@@ -53,10 +53,17 @@ with DAG(
         mode="reschedule",
     )
 
-    # @task
-    # ...
+    @task(task_id="ingest_to_silver")
+    def ingest_to_silver(ds: str) -> str:
+        """
+        Call ingest_day function to generate Silver Parquait
+        """
 
-    # @task
-    # ...
+        silver_path = ingest_day(ds)
+        return str(silver_path)
 
-...
+    silver = ingest_to_silver(ds=ds)
+    wait_for_csv >> silver
+
+
+team_CR_dag()
