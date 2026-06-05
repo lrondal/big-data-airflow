@@ -12,11 +12,7 @@ import logging
 
 
 def transform_1(spark: SparkSession, input_path: str) -> DataFrame:
-    """
-    Transformation 1 - Lecture silver avec schéma explicite + filtre
-    """
 
-    # Définir le schéma explicite basé sur votre CSV
     silver_schema = StructType(
         [
             StructField("tx_id", StringType(), True),
@@ -28,7 +24,6 @@ def transform_1(spark: SparkSession, input_path: str) -> DataFrame:
         ]
     )
 
-    # Lecture avec le schéma explicite
     df_silver = (
         spark.read.schema(silver_schema)
         .option("header", "true")
@@ -36,7 +31,6 @@ def transform_1(spark: SparkSession, input_path: str) -> DataFrame:
         .csv(input_path)
     )
 
-    # Filtre: garder uniquement les transactions valides
     df_filtered = df_silver.filter(
         (F.col("amount_eur") > 0)
         & (F.col("tx_id").isNotNull())
@@ -65,8 +59,36 @@ def transform_2(spark: SparkSession, df: DataFrame, logical_date: str) -> DataFr
 
 
 def transform_3(df: DataFrame) -> DataFrame:
-    """Transformation 3 - e.g. aggregate KPIs by category and country."""
-    raise NotImplementedError("Implement transformation 3")
+    kpi_category = (
+        df.groupBy("category")
+        .agg(
+            F.count("tx_id").alias("transaction_count"),
+            F.sum("amount_eur").alias("total_revenue_eur"),
+            F.round(F.avg("amount_eur"), 2).alias("avg_transaction_eur"),
+            F.max("amount_eur").alias("max_transaction_eur"),
+            F.min("amount_eur").alias("min_transaction_eur"),
+            F.sum("is_card_payment").alias("card_payments_count"),
+            (F.sum("is_card_payment") / F.count("tx_id") * 100).alias(
+                "card_payment_rate_pct"
+            ),
+        )
+        .orderBy(F.col("total_revenue_eur").desc())
+    )
+
+    # KPI par pays
+    kpi_country = (
+        df.groupBy("country")
+        .agg(
+            F.count("tx_id").alias("transaction_count"),
+            F.sum("amount_eur").alias("total_revenue_eur"),
+            F.round(F.avg("amount_eur"), 2).alias("avg_transaction_eur"),
+            F.countDistinct("category").alias("category_diversity"),
+            F.countDistinct("payment_method").alias("payment_methods_count"),
+        )
+        .orderBy(F.col("total_revenue_eur").desc())
+    )
+
+    return kpi_category, kpi_country
 
 
 def run_daily(logical_date: str, *, with_reference: bool = False) -> dict:
