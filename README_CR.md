@@ -1,8 +1,8 @@
-# Team: <First Last> & <First Last>
+# Team: <Jules CINC> & <Luka RONDAL>
 
-**DAG id:** `team_<shortname>`  
-**Git repo:** `https://github.com/...` - **also on your Moodle slides** (title or architecture)  
-**Spark module:** `include/team_<shortname>_spark.py`  
+**DAG id:** `team_CR`  
+**Git repo:** `https://github.com/lrondal/big-data-airflow` - **also on your Moodle slides** (title or architecture)  
+**Spark module:** `include/team_CR_spark.py`  
 **Course:** Big Data Processing - Lab 4 Capstone
 
 ---
@@ -25,23 +25,23 @@
 |-------|------|------|
 | Bronze | `data/incoming/` | `vendor_drop.py` |
 | Silver | `data/raw/dt=` | DuckDB (`ingest_day`) |
-| Gold | `data/curated/dt=` | **Your** `team_<shortname>_spark.py` |
+| Gold | `data/curated/dt=` | **Your** `team_CR_spark.py` |
 | Serve | `data/reports/` | JSON dashboard |
 
 ### Airflow (5 tasks)
 
 | task_id | Role |
 |---------|------|
-| `task_1` | `role_1` |
-| `task_2` | `role_2` |
-| `task_3` | `role_3` |
-| `task_4` | `role_4` |
-| `task_5` | `role_5` |
+| `wait_for_csv` | `Wait for csv to exist in data/incoming` |
+| `ingest_to_silver` | `Call DuckDB to convert csv -> Silver Parquet` |
+| `validate_silver` | `Check that Silver isn't empty and that amount_eur isn't NULL everywhere` |
+| `run_spark_kpis` | `-> Gold Parquet + JSON report` |
+| `publish_report` | `Write a marker file as report` |
 
 **Dependency graph:**
 
 ```
-e.g. `task_1` → `task_2` → `task_3` → `task_4` → `task_5`
+`wait_for_csv` → `ingest_to_silver` → `validate_silver` → `run_spark_kpis` → `publish_report`
 ```
 
 ---
@@ -52,9 +52,9 @@ File: `include/team_<shortname>_spark.py`
 
 | # | Function | What it does |
 |---|----------|--------------|
-| 1 | `transform_1` | `description_1` |
-| 2 | `transform_2` | `description_2` |
-| 3 | `transform_3` | `description_3` |
+| 1 | `transform_1` | `Read Silver Parquet + Cast (amount_eur -> float, date -> DateType)` |
+| 2 | `transform_2` | `Add a column ` |
+| 3 | `transform_3` | `Gold layer: SUM(amount_eur) and COUNT(tx_id) aggregate by category and country` |
 
 ---
 
@@ -101,4 +101,8 @@ python scripts/vendor_drop.py --date 2026-06-03 --corrupt
 ---
 
 ## 9. Production next steps
+
+
+## 10. Collaborators
+Please, follow commit keywords as explained [here](https://buzut.net/cours/versioning-avec-git/bien-nommer-ses-commits).
 
