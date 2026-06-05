@@ -8,10 +8,11 @@ from pyspark.sql.types import (
 )
 from pyspark.sql import functions as F
 from typing import Tuple
+from paths import raw_parquet
 import logging
 
 
-def transform_1(spark: SparkSession, input_path: str) -> DataFrame:
+def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
 
     silver_schema = StructType(
         [
@@ -28,7 +29,7 @@ def transform_1(spark: SparkSession, input_path: str) -> DataFrame:
         spark.read.schema(silver_schema)
         .option("header", "true")
         .option("delimiter", ",")
-        .csv(input_path)
+        .csv(raw_parquet(logical_date))
     )
 
     df_filtered = df_silver.filter(
