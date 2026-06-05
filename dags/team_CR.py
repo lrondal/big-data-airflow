@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 
 from airflow.decorators import dag, task
 from airflow.sensors.filesystem import FileSensor
+from airflow.exceptions import AirflowFailException
 
 from include.ingest import ingest_day, validate_silver
 from include.paths import report_json
@@ -62,9 +63,19 @@ def team_CR_dag():
         silver_path = ingest_day(ds)
         return str(silver_path)
 
-    silver = ingest_to_silver(ds=ds)
+    @task(task_id="validate_silver")
+    def validate(ds: str):
+        """
+        Validate the silver Parquet file using validate_silver function
+        """
+        try:
+            return validate_silver(ds)
+        except RuntimeError as e:
+            raise AirflowFailException(str(e)) from e
 
-    wait_for_csv >> silver
+    silver = ingest_to_silver(ds=ds)
+    validation = validate(ds=ds)
+    wait_for_csv >> silver >> validation
 
 
 team_CR_dag()
