@@ -41,7 +41,7 @@ def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
     return df_filtered
 
 
-def transform_2(df: DataFrame, spark: SparkSession, logical_date: str) -> DataFrame:
+def transform_2(df: DataFrame, spark: SparkSession) -> DataFrame:
     ref_schema = StructType(
         [
             StructField("category", StringType(), True),
