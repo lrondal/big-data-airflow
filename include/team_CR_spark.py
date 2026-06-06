@@ -24,7 +24,7 @@ def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
     input_path = raw_parquet(logical_date)
     logging.info(f"Lecture du Parquet source: {input_path}")
 
-    df_silver = spark.read.parquet(input_path)
+    df_silver = spark.read.parquet(str(input_path))
 
     logging.info(f"Nombre de lignes initial: {df_silver.count()}")
 
