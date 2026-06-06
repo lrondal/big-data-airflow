@@ -58,7 +58,7 @@ def transform_2(df: DataFrame, spark: SparkSession) -> DataFrame:
         spark.read.schema(ref_schema)
         .option("header", "true")
         .option("delimiter", ",")
-        .csv(ref_path)
+        .csv(str(ref_path))
     )
 
     logging.info(f"Catégories de référence chargées: {df_targets.count()}")
@@ -151,7 +151,7 @@ def run_daily(logical_date: str) -> dict:
             allowMissingColumns=True,
         )
 
-        kpi_combined.coalesce(1).write.mode("overwrite").parquet(output_path)
+        kpi_combined.coalesce(1).write.mode("overwrite").parquet(str(output_path))
 
         logging.info(f"KPIs écrits en Parquet: {output_path}")
 
