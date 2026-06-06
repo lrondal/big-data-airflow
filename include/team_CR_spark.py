@@ -123,7 +123,7 @@ def run_daily(logical_date: str) -> dict:
     kpi_combined = transform_3(df_enriched)
 
     kpi_combined.coalesce(1).write.mode("overwrite").parquet(curated_kpis)
-
+    logging.info("parquet written")
     spark.stop()
 
     return {"output_path": curated_kpis}
