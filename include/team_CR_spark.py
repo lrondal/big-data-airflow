@@ -7,8 +7,9 @@ from pyspark.sql.types import (
 )
 from pyspark.sql import functions as F
 from typing import Tuple
-from include.paths import raw_parquet, reference_targets, curated_kpis
+from include.paths import raw_parquet, reference_targets, curated_kpis, report_json
 import logging
+import json
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -144,9 +145,7 @@ def run_daily(logical_date: str) -> dict:
         df_enriched = transform_2(df_silver, spark)
         kpi_category, kpi_country = transform_3(df_enriched)
 
-        output_path = (
-            curated_kpis(logical_date) if callable(curated_kpis) else curated_kpis
-        )
+        output_path = curated_kpis(logical_date)
 
         kpi_combined = kpi_category.withColumn(
             "kpi_type", F.lit("category")
@@ -167,3 +166,51 @@ def run_daily(logical_date: str) -> dict:
         logging.info("Session Spark fermée")
 
     return {"output_path": output_path}
+
+
+def publish_report(logical_date: str) -> str:
+
+    spark = SparkSession.builder.appName(f"Publish_Report_{logical_date}").getOrCreate()
+
+    kpi_path = curated_kpis(logical_date)
+
+    try:
+        df_kpis = spark.read.parquet(str(kpi_path))
+
+        df_category = df_kpis.filter(F.col("kpi_type") == "category").drop(
+            "kpi_type", "category_diversity", "payment_methods_count"
+        )
+
+        df_country = df_kpis.filter(F.col("kpi_type") == "country").drop(
+            "kpi_type",
+            "card_payments_count",
+            "card_payment_rate_pct",
+            "max_transaction_eur",
+            "min_transaction_eur",
+        )
+
+        category_kpis = [row.asDict() for row in df_category.collect()]
+        country_kpis = [row.asDict() for row in df_country.collect()]
+
+        report = {
+            "report_metadata": {"logical_date": logical_date, "source": str(kpi_path)},
+            "kpi_summary": {
+                "category_kpis": category_kpis,
+                "country_kpis": country_kpis,
+            },
+        }
+
+        output_path = report_json(logical_date)
+
+        with open(str(output_path), "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False, default=str)
+
+        logging.info(f"Rapport JSON généré: {output_path}")
+
+        return str(output_path)
+
+    except Exception as e:
+        logging.error(f"Erreur lors de la génération du rapport: {str(e)}")
+        raise
+    finally:
+        spark.stop()
