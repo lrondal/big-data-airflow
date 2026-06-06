@@ -85,9 +85,9 @@ def team_CR_dag():
 
     silver = ingest_to_silver(ds=ds)
     validation = validate(ds=ds)
-    report = run_spark_kpis(ds=ds)
+    transform = run_spark_kpis(ds=ds)
 
-    wait_for_csv >> silver >> validation >> report
+    wait_for_csv >> silver >> validation >> transform
 
 
 team_CR_dag()
