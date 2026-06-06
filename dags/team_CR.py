@@ -80,8 +80,8 @@ def team_CR_dag():
         Execute run_daily that apply spark transformation
         """
 
-        report_path = run_daily(ds)
-        return str(report_path)
+        gold_data_path = run_daily(ds)
+        return str(gold_data_path)
 
     silver = ingest_to_silver(ds=ds)
     validation = validate(ds=ds)
