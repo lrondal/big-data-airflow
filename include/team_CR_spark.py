@@ -8,8 +8,7 @@ from pyspark.sql.types import (
 )
 from pyspark.sql import functions as F
 from typing import Tuple
-from paths import raw_parquet, reference_targets
-import logging
+from include.paths import raw_parquet, reference_targets, curated_kpis
 
 
 def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
@@ -93,7 +92,6 @@ def transform_3(df: DataFrame) -> DataFrame:
         .orderBy(F.col("total_revenue_eur").desc())
     )
 
-    # KPI par pays
     kpi_country = (
         df.groupBy("country")
         .agg(
@@ -110,7 +108,14 @@ def transform_3(df: DataFrame) -> DataFrame:
 
 
 def run_daily(logical_date: str, *, with_reference: bool = False) -> dict:
-    """Called from your Airflow @task. Wire transform_1 → transform_2 → transform_3, then write outputs."""
-    raise NotImplementedError("Implement run_daily")
-    # run all transform and return kpi from trnasform 3
-    # use reference for transform 2
+    spark = SparkSession.builder.appName(f"Daily_ETL_{logical_date}").getOrCreate()
+
+    df_silver = transform_1(spark, logical_date)
+    df_enriched = transform_2(df_silver, spark)
+    kpi_combined = transform_3(df_enriched)
+
+    kpi_combined.coalesce(1).write.mode("overwrite").parquet(curated_kpis)
+
+    spark.stop()
+
+    return {"output_path": curated_kpis}
