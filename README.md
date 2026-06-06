@@ -35,8 +35,8 @@
 | `wait_for_csv` | `Wait for csv to exist in data/incoming` |
 | `ingest_to_silver` | `Call DuckDB to convert csv -> Silver Parquet` |
 | `validate_silver` | `Check that Silver isn't empty and that amount_eur isn't NULL everywhere` |
-| `run_spark_kpis` | `-> Gold Parquet + JSON report` |
-| `publish_report` | `Write a marker file as report` |
+| `run_spark_kpis` | `-> Gold Parquet` |
+| `publish_report` | `Write a json file as report` |
 
 **Dependency graph:**
 
