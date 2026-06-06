@@ -107,7 +107,7 @@ def transform_3(df: DataFrame) -> DataFrame:
     return kpi_category, kpi_country
 
 
-def run_daily(logical_date: str, *, with_reference: bool = False) -> dict:
+def run_daily(logical_date: str) -> dict:
     spark = SparkSession.builder.appName(f"Daily_ETL_{logical_date}").getOrCreate()
 
     df_silver = transform_1(spark, logical_date)
