@@ -63,7 +63,11 @@ def transform_2(df: DataFrame, spark: SparkSession) -> DataFrame:
 
     logging.info(f"Catégories de référence chargées: {df_targets.count()}")
 
-    df_enriched = df.join(df_targets, df.category == df_targets.category, "left")
+    df_targets_renamed = df_targets.withColumnRenamed("category", "ref_category")
+
+    df_enriched = df.join(
+        df_targets_renamed, df.category == df_targets_renamed.ref_category, "left"
+    ).drop("ref_category")
 
     df_enriched = (
         df_enriched.withColumn("transaction_hour", F.hour("ts"))
