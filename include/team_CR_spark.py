@@ -10,6 +10,14 @@ from pyspark.sql import functions as F
 from typing import Tuple
 from include.paths import raw_parquet, reference_targets, curated_kpis
 
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Niveau minimum affiché
+    format="%(asctime)s - %(levelname)s - %(message)s",  # Format du message
+    datefmt="%Y-%m-%d %H:%M:%S",  # Format de la date
+)
+
 
 def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
 
