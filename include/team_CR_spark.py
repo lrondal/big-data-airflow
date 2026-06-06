@@ -4,40 +4,29 @@ from pyspark.sql.types import (
     StructField,
     StringType,
     DoubleType,
-    TimestampType,
 )
 from pyspark.sql import functions as F
 from typing import Tuple
 from include.paths import raw_parquet, reference_targets, curated_kpis
-
 import logging
 
 logging.basicConfig(
-    level=logging.DEBUG,  # Niveau minimum affiché
-    format="%(asctime)s - %(levelname)s - %(message)s",  # Format du message
-    datefmt="%Y-%m-%d %H:%M:%S",  # Format de la date
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 
 def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
+    """
+    Lecture du Parquet source et filtrage des données.
+    """
+    input_path = raw_parquet(logical_date)
+    logging.info(f"Lecture du Parquet source: {input_path}")
 
-    silver_schema = StructType(
-        [
-            StructField("tx_id", StringType(), True),
-            StructField("category", StringType(), True),
-            StructField("payment_method", StringType(), True),
-            StructField("country", StringType(), True),
-            StructField("amount_eur", DoubleType(), True),
-            StructField("ts", TimestampType(), True),
-        ]
-    )
+    df_silver = spark.read.parquet(input_path)
 
-    df_silver = (
-        spark.read.schema(silver_schema)
-        .option("header", "true")
-        .option("delimiter", ",")
-        .csv(raw_parquet(logical_date))
-    )
+    logging.info(f"Nombre de lignes initial: {df_silver.count()}")
 
     df_filtered = df_silver.filter(
         (F.col("amount_eur") > 0)
@@ -45,10 +34,19 @@ def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
         & (F.col("category").isNotNull())
         & (F.col("country").isNotNull())
     )
+
+    logging.info(f"Nombre de lignes après filtrage: {df_filtered.count()}")
+
     return df_filtered
 
 
 def transform_2(df: DataFrame, spark: SparkSession) -> DataFrame:
+    """
+    Enrichissement avec les données de référence CSV.
+    """
+    ref_path = reference_targets()
+    logging.info(f"Lecture du fichier de référence CSV: {ref_path}")
+
     ref_schema = StructType(
         [
             StructField("category", StringType(), True),
@@ -56,9 +54,14 @@ def transform_2(df: DataFrame, spark: SparkSession) -> DataFrame:
         ]
     )
 
-    ref_path = reference_targets()
+    df_targets = (
+        spark.read.schema(ref_schema)
+        .option("header", "true")
+        .option("delimiter", ",")
+        .csv(ref_path)
+    )
 
-    df_targets = spark.read.schema(ref_schema).option("header", "true").csv(ref_path)
+    logging.info(f"Catégories de référence chargées: {df_targets.count()}")
 
     df_enriched = df.join(df_targets, df.category == df_targets.category, "left")
 
@@ -80,10 +83,14 @@ def transform_2(df: DataFrame, spark: SparkSession) -> DataFrame:
             F.round((F.col("amount_eur") / F.col("target_revenue_eur")) * 100, 2),
         )
     )
+
     return df_enriched
 
 
-def transform_3(df: DataFrame) -> DataFrame:
+def transform_3(df: DataFrame) -> Tuple[DataFrame, DataFrame]:
+    """
+    Agrégation des KPIs par catégorie et par pays.
+    """
     kpi_category = (
         df.groupBy("category")
         .agg(
@@ -116,14 +123,43 @@ def transform_3(df: DataFrame) -> DataFrame:
 
 
 def run_daily(logical_date: str) -> dict:
-    spark = SparkSession.builder.appName(f"Daily_ETL_{logical_date}").getOrCreate()
+    """
+    Pipeline ETL quotidien avec inputs Parquet et référence CSV.
+    """
+    spark = (
+        SparkSession.builder.appName(f"Daily_ETL_{logical_date}")
+        .config("spark.sql.adaptive.enabled", "true")
+        .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
+        .getOrCreate()
+    )
 
-    df_silver = transform_1(spark, logical_date)
-    df_enriched = transform_2(df_silver, spark)
-    kpi_combined = transform_3(df_enriched)
+    logging.info(f"Démarrage du pipeline ETL pour: {logical_date}")
 
-    kpi_combined.coalesce(1).write.mode("overwrite").parquet(curated_kpis)
-    logging.info("parquet written")
-    spark.stop()
+    try:
+        df_silver = transform_1(spark, logical_date)
+        df_enriched = transform_2(df_silver, spark)
+        kpi_category, kpi_country = transform_3(df_enriched)
 
-    return {"output_path": curated_kpis}
+        output_path = (
+            curated_kpis(logical_date) if callable(curated_kpis) else curated_kpis
+        )
+
+        kpi_combined = kpi_category.withColumn(
+            "kpi_type", F.lit("category")
+        ).unionByName(
+            kpi_country.withColumn("kpi_type", F.lit("country")),
+            allowMissingColumns=True,
+        )
+
+        kpi_combined.coalesce(1).write.mode("overwrite").parquet(output_path)
+
+        logging.info(f"KPIs écrits en Parquet: {output_path}")
+
+    except Exception as e:
+        logging.error(f"Erreur dans le pipeline: {str(e)}")
+        raise
+    finally:
+        spark.stop()
+        logging.info("Session Spark fermée")
+
+    return {"output_path": output_path}
