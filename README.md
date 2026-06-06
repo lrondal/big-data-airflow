@@ -50,13 +50,13 @@
 
 File: `include/team_CR_spark.py`
 
-| # | Function | What it does |
+# | Function | What it does |
 |---|----------|--------------|
-| 1 | `transform_1` | `Read Silver Parquet + Cast (amount_eur -> float, date -> DateType)` |
-| 2 | `transform_2` | `Add a column ` |
-| 3 | `transform_3` | `Gold layer: SUM(amount_eur) and COUNT(tx_id) aggregate by category and country` |
+| 1 | `transform_1` | Read raw Parquet for a given logical date and filter rows where `amount_eur > 0`, `tx_id`, `category` and `country` are not null |
+| 2 | `transform_2` | Join with reference CSV targets, then derive computed columns: `transaction_hour`, `transaction_date`, `amount_category`, `is_card_payment`, `target_achievement_pct` |
+| 3 | `transform_3` | Aggregate KPIs into two DataFrames: one grouped by `category`, one by `country`, both ordered by descending `total_revenue_eur` |
 
----
+---s
 
 ## 4. Idempotence
 

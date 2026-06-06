@@ -19,9 +19,6 @@ logging.basicConfig(
 
 
 def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
-    """
-    Lecture du Parquet source et filtrage des données.
-    """
     input_path = raw_parquet(logical_date)
     logging.info(f"Lecture du Parquet source: {input_path}")
 
@@ -42,9 +39,6 @@ def transform_1(spark: SparkSession, logical_date: str) -> DataFrame:
 
 
 def transform_2(df: DataFrame, spark: SparkSession) -> DataFrame:
-    """
-    Enrichissement avec les données de référence CSV.
-    """
     ref_path = reference_targets()
     logging.info(f"Lecture du fichier de référence CSV: {ref_path}")
 
@@ -93,9 +87,6 @@ def transform_2(df: DataFrame, spark: SparkSession) -> DataFrame:
 
 
 def transform_3(df: DataFrame) -> Tuple[DataFrame, DataFrame]:
-    """
-    Agrégation des KPIs par catégorie et par pays.
-    """
     kpi_category = (
         df.groupBy("category")
         .agg(
@@ -128,9 +119,6 @@ def transform_3(df: DataFrame) -> Tuple[DataFrame, DataFrame]:
 
 
 def run_daily(logical_date: str) -> dict:
-    """
-    Pipeline ETL quotidien avec inputs Parquet et référence CSV.
-    """
     spark = (
         SparkSession.builder.appName(f"Daily_ETL_{logical_date}")
         .config("spark.sql.adaptive.enabled", "true")
