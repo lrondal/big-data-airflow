@@ -61,7 +61,7 @@ File: `include/team_CR_spark.py`
 ## 4. Idempotence
 
 <Re-run same `ds`: what gets overwritten under `raw/dt=`, `curated/dt=`, `dashboard_*.json`?>
-
+All three are overwritten.
 ---
 
 ## 5. Backfill
@@ -80,29 +80,25 @@ python scripts/vendor_drop.py --date 2026-06-03 --corrupt
 ```
 
 <Which task fails? What appears in the Airflow UI?>
-
+"Validate_Silver" task fails and error is readable in logs.
 ---
 
 ## 7. Exploration tracks
 
 | Track | Done? | Describe your implementation |
 |-------|-------|----------|
-| R Reliability | | |
-| S Spark depth | | |
-| O Orchestration | | |
-| Q Data quality | | |
-| P Custom | | |
-| X SparkSubmit | | |
+| R Reliability |Yes| Retries, Timeout, Logs|
+| S Spark depth |Yes|  Strict schema, broadcast join |
+| O Orchestration |No Time | |
+| Q Data quality |No Time | |
+| P Custom |No Time | |
+| X SparkSubmit | No Time | |
 
 ---
 
-## 8. Demo script & backup
+## 8. Production next steps
+Implement automated test to ensure reliability.
 
----
-
-## 9. Production next steps
-
-
-## 10. Collaborators
+## 9. Collaborators
 Please, follow commit keywords as explained [here](https://buzut.net/cours/versioning-avec-git/bien-nommer-ses-commits).
 
